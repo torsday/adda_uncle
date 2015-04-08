@@ -12,7 +12,13 @@ class Caesar
     rot  = args[:rot]
     key = Hash[alphabet.zip(alphabet.rotate(rot))]
     key[" "] = " "
-    plain_text.each_char.inject("") { |encrypted, char| encrypted + key[char] }
+    plain_text.each_char.inject("") do |encrypted, char|
+      if key[char]
+        encrypted + key[char]
+      else
+        encrypted + char
+      end
+    end
   end
 
   def self.decrypt(args)
