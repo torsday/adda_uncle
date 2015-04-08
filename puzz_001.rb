@@ -51,7 +51,13 @@ end
 
 known_words = WordList::ALL
 
-message = "Lorem ipsum dolor sit amet consectetur adipisicing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur Excepteur sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum"
+message = <<-MSG
+I risk it for the freedom, to see what is true, what I really want in the
+deepest part of myself. I can make whatever choices I want in my life,
+and I will live with the consequences of those choices. But if I want to
+live a life close to my deepest desires, I have to risk knowing who I
+really am and have always been. Knowing this, then I can choose.
+MSG
 cypher_text = Caesar.encrypt({:plain_text => message, :rot => 11})
 
 puts "CYPHER"
