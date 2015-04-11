@@ -23,7 +23,7 @@ module WordList
   BIG_LIST = []
   txt_file = "word_list"
   File.readlines("words.txt").map do |line|
-    BIG_LIST << line.strip
+    BIG_LIST << line.strip.downcase
   end
 
   ALL = PERSONAL_LIST + BIG_LIST
