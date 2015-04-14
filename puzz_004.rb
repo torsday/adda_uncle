@@ -123,7 +123,7 @@ class CypherAnalysis
   def initialize(args)
     @cypher_text = args[:cypher_text]
     @plain_text
-    @delimiter   = args[:delimiter] || " "
+    @delimiter   = args[:delimiter] || most_common_char
     @key         = args[:key] || Hash[alphabet.zip(alphabet.rotate(0))]
   end
 
@@ -146,6 +146,15 @@ class CypherAnalysis
     alphabet.each {|char| results[char] = 0}
     cypher_text.each_char {|cypher_char| results[cypher_char] += 1}
     results.sort_by {|key,value| value}.reverse.to_h
+  end
+
+  def most_common_char
+    chars = {}
+    cypher_text.each_char do |c|
+      chars[c] ||= 0
+      chars[c] += 1
+    end
+    chars.sort_by{|key,value| value}.reverse.first[0]
   end
 
   def most_common_first_letter
@@ -555,7 +564,24 @@ puts "\nenglish matches"
 p cypher.percentage_of_english_words(cypher.words(:clean => true))
 puts "\nletter freq"
 cy_letter_freq = cypher.letter_freq
-p cy_letter_freq
+cy_letter_freq.each do |char, num|
+  t_str = ''
+  # unless char =~ /[a-zA-Z0-9]/
+  #   char = char.gsub(/\\/,'\\')
+  #   p char
+  # end
+  if char =~ /\n/
+    char = "\\n"
+  else
+    char = " #{char}"
+  end
+  if num > 20
+    t_str += " #{char}: #{num}".red
+  else
+    t_str += " #{char}: #{num}"
+  end
+  puts t_str
+end
 puts "\ncharacter relationships: neighbors"
 cypher.character_relationship_chart
 # title_bar_a = ""

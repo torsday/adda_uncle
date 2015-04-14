@@ -58,3 +58,11 @@ cypher_alphabet.delete(" ")
 # DECRYPTION
 decrypted_msg = AsciiCrypto.decrypt({:cypher_text => cypher_text})
 ```
+
+
+## Puzzle 4
+
+### Assumptions
+* most common character is the space character
+* plaintext language is english
+* ```\n``` is the only special character
