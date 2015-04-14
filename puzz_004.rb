@@ -231,7 +231,7 @@ class CypherAnalysis
     title_bar_b = "   "
     cy_alphabet = self.alphabet
     cy_letter_freq = self.letter_freq
-    frequency_ordered_hash_of_chars = cy_letter_freq.sort_by{|key,value| value}.reverse.to_h
+    frequency_ordered_hash_of_chars = cy_letter_freq.sort_by{|key,value| key}.reverse.to_h
     frequency_ordered_hash_of_chars.each do |c,val|
       perc_count = val * 100.0/self.cypher_text.length
       perc_count = perc_count.round(0)
@@ -251,10 +251,13 @@ class CypherAnalysis
     puts "ignoring %'s below #{min_perc}'"
     puts title_bar_a
     puts title_bar_b
+    puts "=" * title_bar_b.length
+    frequency_ordered_hash_of_chars.delete(nil)
     frequency_ordered_hash_of_chars.each_key do |char|
-      # if char.length ==
       char =~ /\n/ ? row = "\\n|" : row = "#{char} |"
       neighbors_of_char = self.neighbor_chars_of(char)
+      neighbors_of_char.delete(nil)
+      neighbors_of_char = neighbors_of_char.sort_by{|key,value| key}.reverse.to_h
       neighbors_of_char.each do |neighbor,count|
         perc_count = count * 100.0/self.cypher_text.length
         perc_count = perc_count.round(1)
@@ -269,6 +272,7 @@ class CypherAnalysis
         else
           row += "|   "
         end
+        # neighbor =~ /\n/ ? row += "| \\n " : row += "| #{neighbor} " # debugging
       end
       neighbor_total = neighbors_of_char.select{|char,value| value > 0}.count
       if neighbor_total > 15
