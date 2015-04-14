@@ -26,15 +26,70 @@
 # require 'rspec'
 require_relative 'word_list'
 
+# Colorize strings
+class String
+  # colorization
+  def colorize(color_code)
+    "\e[#{color_code}m#{self}\e[0m"
+  end
+
+  def red
+    colorize(31)
+  end
+
+  def green
+    colorize(32)
+  end
+
+  def yellow
+    colorize(33)
+  end
+
+  def pink
+    colorize(35)
+  end
+end
+
+# Given a word, this creates an object that:
+# spells the word out as numbers
+# returns number:letter relationship hashes
+class VerbumNumerus
+  attr_accessor :key_by_num, :key_by_char, :text, :num
+  def initialize(args={})
+    @text        = args[:text]
+    @num
+    @key_by_char = {}
+    @key_by_num  = {}
+    populate_variables
+  end
+
+  private
+
+  def populate_variables
+    count = 1
+    self.text.split("").each do |char|
+      count_base_36 = count.to_s(36)
+      raise "#{count} is too high for ruby's radix max" if count > 35
+      unless self.key_by_char.has_key?(char)
+        self.key_by_char[char] ||= count_base_36
+        count += 1
+      end
+    end
+    self.num = text.each_char.map{|c| self.key_by_char[c]}.join()
+    self.key_by_char.each { |char,num| self.key_by_num[num] = char }
+  end
+
+end
+
 class Cryptogram
 
   attr_accessor :plain_text, :cypher_text, :key, :seed
 
   def initialize(args={})
     @plain_text  = args[:plain_text].downcase || nil
-    @cypher_text = args[:cypher_text] || nil
-    @key         = args[:key] || nil
-    @seed        = args[:seed] || 1234
+    @cypher_text = args[:cypher_text]         || nil
+    @key         = args[:key]                 || nil
+    @seed        = args[:seed]                || 1234
   end
 
   def encrypt
@@ -167,58 +222,212 @@ class CypherAnalysis
     results.sort_by {|key,value| value}.reverse.to_h
   end
 
+  # super header: frequency percentage
+  # header: character, ordered by freq. percentage
+  # content: how often they are neighbors with x char
+  def character_relationship_chart
+    min_perc = 2.0
+    title_bar_a = "   "
+    title_bar_b = "   "
+    cy_alphabet = self.alphabet
+    cy_letter_freq = self.letter_freq
+    frequency_ordered_hash_of_chars = cy_letter_freq.sort_by{|key,value| value}.reverse.to_h
+    frequency_ordered_hash_of_chars.each do |c,val|
+      perc_count = val * 100.0/self.cypher_text.length
+      perc_count = perc_count.round(0)
+      if perc_count > 9
+        title_bar_a += "|#{perc_count} ".red
+      else
+        if perc_count > 4
+          title_bar_a += "| #{perc_count} ".red
+        else
+          title_bar_a += "| #{perc_count} "
+        end
+      end
+    end
+    frequency_ordered_hash_of_chars.each_key do |c|
+      c =~ /\n/ ? title_bar_b += "|\\n " : title_bar_b += "| #{c} "
+    end
+    puts "ignoring %'s below #{min_perc}'"
+    puts title_bar_a
+    puts title_bar_b
+    frequency_ordered_hash_of_chars.each_key do |char|
+      # if char.length ==
+      char =~ /\n/ ? row = "\\n|" : row = "#{char} |"
+      neighbors_of_char = self.neighbor_chars_of(char)
+      neighbors_of_char.each do |neighbor,count|
+        perc_count = count * 100.0/self.cypher_text.length
+        perc_count = perc_count.round(1)
+        if perc_count > min_perc
+          if perc_count > 2.3
+            row += "|#{perc_count}".red
+          else
+            row += "|#{perc_count}"
+          end
+        elsif perc_count > 0
+          row += "| X "
+        else
+          row += "|   "
+        end
+      end
+      neighbor_total = neighbors_of_char.select{|char,value| value > 0}.count
+      if neighbor_total > 15
+        row += "| #{neighbor_total}".red
+      else
+        row += "| #{neighbor_total}"
+      end
+      puts row
+    end
+
+
+  end
+
+  def neighbor_chars_of(char)
+    neighbors = {}
+    (0..cypher_text.length).each do |n|
+      target = cypher_text[n]
+      before = nil
+      after  = nil
+
+      if n == 0
+        before = nil
+      else
+        before = cypher_text[n - 1]
+      end
+
+      if n == cypher_text.length
+        after = nil
+      else
+        after = cypher_text[n + 1]
+      end
+
+      neighbors[before]  ||= 0
+      neighbors[after]   ||= 0
+
+      if cypher_text[n] == char
+        neighbors[before]   += 1
+        neighbors[after]    += 1
+      end
+    end
+    return neighbors
+  end
+
   def decrypt
 
-    # translate words to ordered version
-    cypher_words_res = []
+    # translate words to number alphabet + hash key
+    # {number_version => ..., :num_to_char =>...}
+    cypher_words_num_and_key = []
     words(:clean => true).each do |word|
-      results = translate_word_to_positional(word)
-      word_in_num_form = results[:translation]
-      cypher_words_res << {:translation => results[:translation], :num_to_char => results[:num_to_char]}
+      verbum_numerus = VerbumNumerus.new(:text => word)
+      cypher_words_num_and_key << {:translation => verbum_numerus.num, :num_to_char => verbum_numerus.key_by_num}
     end
 
     # translate dictionary into positional hash
     # {position => [num_to_char hashes]}
     dictionary_of_order_alphabet = {}
     WordList::ALL.each do |word|
-      results = translate_word_to_positional(word)
-      dictionary_of_order_alphabet[results[:translation]] ||= []
-      dictionary_of_order_alphabet[results[:translation]] << results[:num_to_char]
+      verbum_numerus = VerbumNumerus.new(:text => word)
+      verbum_numerus.text
+      dictionary_of_order_alphabet[verbum_numerus.num] ||= []
+      dictionary_of_order_alphabet[verbum_numerus.num] << verbum_numerus.key_by_num
     end
     # p dictionary_of_order_alphabet.keys
 
-    # go through each
+    # go through each cypher word
+    # collect the possible matching english words based upon num_alphabet pttrn
+    cyphers_which_translated_words_to_english = []
     possible_keys = []
-    cypher_words_res.each do |word_res|
-      char_to_char = {}
-      word_were_working_with = word_res[:translation]
-      (1..word.length).each do |n|
-        c_char = word_res[:num_to_char][n]
-        p_char =
+    cypher_words_num_and_key.each do |cypher_word|
+      char_to_char         = {}
+      numbered_cypher_word = cypher_word[:translation]
+      cypher_num_to_char   = cypher_word[:num_to_char]
 
-        dictionary_of_order_alphabet[]
+      # using the matching dictionary cypher,
+      # for each possible cypher
+      # translate the cypher's number version into the possible plaintext
+      dictionary_of_order_alphabet[numbered_cypher_word].each do |possible_cypher|
+        temp_arr = []
+        numbered_cypher_word.each_char{|c| temp_arr << possible_cypher[c]}
+        possible_plaintext = temp_arr.join("")
 
+        # if the words is an actual word in the dictionary...if
+        if WordList::ALL.include?(possible_plaintext)
+          # puts "#{possible_cypher}: #{possible_plaintext}"
+          cyphers_which_translated_words_to_english << possible_cypher
+        end
 
-        {c_char => p_char}
-        pchar_to_char[word_res[:num_to_char][n]]
       end
-      possible_keys += dictionary_of_order_alphabet[word]
+
+      # puts "#{numbered_cypher_word}: #{cypher_num_to_char}"
+      puts " matching_keys for #{numbered_cypher_word}:#{cypher_num_to_char}: #{dictionary_of_order_alphabet[numbered_cypher_word].length}"
+      # (1..cypher_word.length).each do |n|
+      #   c_char = cypher_word[:num_to_char][n]
+      #   p_char =
+      #
+      #   dictionary_of_order_alphabet[]
+      #
+      #
+      #   {c_char => p_char}
+      #   pchar_to_char[cypher_word[:num_to_char][n]]
+      # end
+      # possible_keys += dictionary_of_order_alphabet[word]
     end
+
+    # possible keys down to 172954
+    p "cyphers_which_translated_words_to_english: #{cyphers_which_translated_words_to_english.length}"
+
+    # apply remaining cypher keys to entire cyphertext,
+    # getting their score,
+    # returning the top scorers
+    english_scores_for_entire_plaintext = {} # score => cypher
+    cyphers_which_translated_words_to_english.sort_by{|x| x.length }.each do |possible_cypher|
+
+      # get plaintext
+      possible_plaintext_arr = []
+      self.cypher_text.each_char do |c|
+        p c
+        p possible_cypher
+        if possible_cypher[c]
+          possible_plaintext_arr << possible_cypher[c]
+        else
+          possible_plaintext_arr << c
+        end
+      end
+      possible_plaintext = possible_plaintext_arr.join("")
+
+      # calculate score, and save
+      eng_score = non_class_percentage_of_english_words(possible_plaintext)
+      p possible_cypher
+      puts "#{eng_score}: #{possible_plaintext}"
+      english_scores_for_entire_plaintext[eng_score] ||= []
+      english_scores_for_entire_plaintext[eng_score] << possible_cypher
+    end
+
+    p "english_scores_for_entire_plaintext scores: #{english_scores_for_entire_plaintext.keys}"
+
+
+    # ...cyphers are yet incomplete at this point
+
+    # for n in (80..100).to_a.reverse
+    #   p n
+    # end
+
+
     # p possible_keys.count # 32086, still high, but not 26! high
 
     # rank keys in terms of score
-    key_scores = []
-    possible_keys.each do |possible_key|
-      p possible_key
-      possible_plain_text = translate_with_key(:key => possible_key)
-      p possible_plain_text
-      list_of_words = words(:clean => true, :str => possible_plain_text)
-      p list_of_words
-      score = percentage_of_english_words(list_of_words) # list of words
-      key_scores << {:score => score, :key => possible_key}
-    end
-    p key_scores
-    return true
+    # key_scores = []
+    # possible_keys.each do |possible_key|
+    #   p possible_key
+    #   possible_plain_text = translate_with_key(:key => possible_key)
+    #   p possible_plain_text
+    #   list_of_words = words(:clean => true, :str => possible_plain_text)
+    #   p list_of_words
+    #   score = percentage_of_english_words(list_of_words) # list of words
+    #   key_scores << {:score => score, :key => possible_key}
+    # end
+    # p key_scores
+    # return true
   end
 
   # ---
@@ -228,38 +437,62 @@ class CypherAnalysis
     self.cypher_text.split(self.delimiter).map {|c| temp_key[c]}.join()
   end
 
-  def translate_word_to_positional(word)
-    char_to_num = {}
-    num_to_char = {}
-    count       = 1
-    word.split("").each do |char|
-      count_base_36 = count.to_s(36)
-      raise "can't go that high" if count > 35
-      unless char_to_num.has_key?(char)
-        char_to_num[char] ||= count_base_36
-        count += 1
-      end
-    end
+  # ---
 
-    translated_word = word.each_char.map{|w| char_to_num[w]}.join()
+end
 
-    char_to_num.each { |key,value| num_to_char[value] = key }
-
-    # char_to_char = {}
-    # char_to_num.each { |char,num| char_to_char[char] = num_to_char[num]}
-    # p char_to_char
-
-    # p num_to_char
-
-    {
-      :char_to_num  => char_to_num,
-      :num_to_char  => num_to_char,
-      # :char_to_char => char_to_char,
-      :original     => word,
-      :translation  => translated_word
-    }
+def num_of_english_words(str)
+  arr = str.downcase.split(" ")
+  count = 0
+  arr.each do |w|
+    count += 1 if WordList::ALL.include?(w)
   end
+  count
+end
 
+def highest_num_of_eng_words(arr_of_potential_answers)
+  highest_count = 0
+  highest_string = ""
+  arr_of_potential_answers.each do |possible|
+    the_count = num_of_english_words(possible)
+    if the_count > highest_count
+      highest_count = the_count
+      highest_string = possible
+    end
+  end
+  highest_string
+end
+
+def non_class_percentage_of_english_words(str)
+  cleaned_words = non_class_words({:clean => true, :str => str})
+  total_word_count = cleaned_words.length
+  eng_words = 0
+  cleaned_words.each do |w|
+    eng_words += 1 if WordList::ALL.include?(w)
+  end
+  percentage_eng_words = (eng_words * 1.0) / total_word_count
+  percentage_eng_words = percentage_eng_words.round(2) * 100
+  return percentage_eng_words
+end
+
+def non_class_words(args={})
+  clean = args[:clean] || false
+  str   = args[:str]
+
+  all_words = str
+    .split(delimiter)
+    .uniq
+
+  if clean == false
+    return all_words.sort
+  else
+    cleaned_words = all_words
+      .map{|word| word.downcase}
+      .map{|word| word.gsub(/(^\W*|\W*$)/,"")} # remove leading/trailing non-words
+      .uniq
+      .sort_by{|word| word.length}
+    return cleaned_words
+  end
 end
 
 # ---
@@ -310,14 +543,24 @@ puts cryptogram.cypher_text
 cypher = CypherAnalysis.new(cypher_text: cryptogram.cypher_text, delimiter: " ")
 
 puts "\nalphabet"
-p cypher.alphabet
+cy_alphabet = cypher.alphabet
+p cy_alphabet
 puts "\ncleaned words"
 p cypher.words(:clean => true)
 puts "\nenglish matches"
 p cypher.percentage_of_english_words(cypher.words(:clean => true))
 puts "\nletter freq"
-p cypher.letter_freq
-puts "\nmost common first letter"
+cy_letter_freq = cypher.letter_freq
+p cy_letter_freq
+puts "\ncharacter relationships: neighbors"
+cypher.character_relationship_chart
+# title_bar_a = ""
+
+# p title_bar_a
+# cy_letter_freq.sort_by{|key,value| value}.reverse.to_h.each_key do |char|
+#   #  p cypher.neighbor_chars_of(char)
+# end
+# puts "\nmost common first letter"
 p cypher.most_common_first_letter
 puts "\nmost_common_single_char_words"
 p cypher.most_common_single_char_words
@@ -325,9 +568,14 @@ puts "\nword_lengths_with_delimiter"
 p cypher.word_lengths_with_delimiter
 puts "\nplain_text with current key"
 p cypher.plain_text
-puts "\nDECRYPTED"
-cypher.decrypt
-p cypher.plain_text
+# puts "\nDECRYPTED"
+# cypher.decrypt
+# p cypher.plain_text
+
+
+
+
+
 
 # ---
 
