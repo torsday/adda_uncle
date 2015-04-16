@@ -14,9 +14,9 @@ class AsciiCrypto
   end
 
   def self.decrypt(args)
-    cypher_text = args[:cypher_text]
+    cyphertext = args[:cyphertext]
     plain_text  = []
-    cypher_text.split(" ").map do |o|
+    cyphertext.split(" ").map do |o|
       the_char = o.sub(/^00/, "").to_i.chr
       plain_text << the_char
     end
@@ -41,15 +41,15 @@ puts "\nMESSAGE"
 puts plain_text
 puts "---"
 
-cypher_text = AsciiCrypto.encrypt(:plain_text => plain_text)
+cyphertext = AsciiCrypto.encrypt(:plain_text => plain_text)
 
-# cypher_text = '067 104 114 105 115 032 084 111 114 115 116 101 110 115 111 110'
+# cyphertext = '067 104 114 105 115 032 084 111 114 115 116 101 110 115 111 110'
 
 puts "\nCYPHER"
-puts cypher_text
+puts cyphertext
 puts "---"
 
-decrypted_msg = AsciiCrypto.decrypt({:cypher_text => cypher_text})
+decrypted_msg = AsciiCrypto.decrypt({:cyphertext => cyphertext})
 
 puts "\nDECRYPTED"
 puts decrypted_msg

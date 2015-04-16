@@ -22,8 +22,8 @@ class AsciiCrypto
 
   # given an ascii translation, but not the radix
   def self.decrypt(args)
-    cypher_text = args[:cypher_text]
-    cypher_alphabet = self.used_chars(:text => cypher_text)
+    cyphertext = args[:cyphertext]
+    cypher_alphabet = self.used_chars(:text => cyphertext)
     cypher_alphabet.delete(" ")
     min_radix = cypher_alphabet.length
 
@@ -31,7 +31,7 @@ class AsciiCrypto
 
     (min_radix..36).each do |radix|
       plain_text  = []
-      cypher_arr = cypher_text.split(" ")
+      cypher_arr = cyphertext.split(" ")
       cypher_arr.map do |o|
         o = o.sub(/^00/, "") # remove leading zeros
         o = o.to_s # make into string, because we need it there for radix trans
@@ -117,19 +117,19 @@ puts "\nMESSAGE"
 puts plain_text
 puts "---"
 
-cypher_text = AsciiCrypto.encrypt(:plain_text => plain_text, :radix => MY_RADIX)
+cyphertext = AsciiCrypto.encrypt(:plain_text => plain_text, :radix => MY_RADIX)
 
 puts "\nCYPHER"
-puts cypher_text
+puts cyphertext
 puts "---"
 
 puts "\nCYPHER ALPHABET"
-cypher_alphabet = AsciiCrypto.used_chars(:text => cypher_text)
+cypher_alphabet = AsciiCrypto.used_chars(:text => cyphertext)
 cypher_alphabet.delete(" ")
 p cypher_alphabet
 p cypher_alphabet.length
 puts "---"
 
 puts "\nDECRYPTED"
-decrypted_msg = AsciiCrypto.decrypt({:cypher_text => cypher_text})
+decrypted_msg = AsciiCrypto.decrypt({:cyphertext => cyphertext})
 puts "#{decrypted_msg}"

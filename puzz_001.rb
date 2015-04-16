@@ -22,11 +22,11 @@ class Caesar
   end
 
   def self.decrypt(args)
-    cypher_text = args[:cypher_text]
+    cyphertext = args[:cyphertext]
     possibles = []
     top_contender = {:score => 0, :text => ""}
     (0..25).each do |n|
-      translation = self.encrypt(:rot => n, :plain_text => cypher_text)
+      translation = self.encrypt(:rot => n, :plain_text => cyphertext)
       eng_word_count = num_of_english_words(translation)
       if eng_word_count > top_contender[:score]
         top_contender[:score] = eng_word_count
@@ -58,13 +58,13 @@ and I will live with the consequences of those choices. But if I want to
 live a life close to my deepest desires, I have to risk knowing who I
 really am and have always been. Knowing this, then I can choose.
 MSG
-cypher_text = Caesar.encrypt({:plain_text => message, :rot => 11})
+cyphertext = Caesar.encrypt({:plain_text => message, :rot => 11})
 
 puts "CYPHER"
-puts cypher_text
+puts cyphertext
 puts "---"
 
-decrypted_msg = Caesar.decrypt({:cypher_text => cypher_text})[:text]
+decrypted_msg = Caesar.decrypt({:cyphertext => cyphertext})[:text]
 
 puts "DECRYPTED"
 puts decrypted_msg
