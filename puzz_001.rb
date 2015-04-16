@@ -7,12 +7,12 @@ require_relative 'word_list'
 
 class Caesar
   def self.encrypt(args)
-    plain_text = args[:plain_text].downcase
+    plaintext = args[:plaintext].downcase
     alphabet = ("a".."z").to_a
     rot  = args[:rot]
     key = Hash[alphabet.zip(alphabet.rotate(rot))]
     key[" "] = " "
-    plain_text.each_char.inject("") do |encrypted, char|
+    plaintext.each_char.inject("") do |encrypted, char|
       if key[char]
         encrypted + key[char]
       else
@@ -26,7 +26,7 @@ class Caesar
     possibles = []
     top_contender = {:score => 0, :text => ""}
     (0..25).each do |n|
-      translation = self.encrypt(:rot => n, :plain_text => cyphertext)
+      translation = self.encrypt(:rot => n, :plaintext => cyphertext)
       eng_word_count = num_of_english_words(translation)
       if eng_word_count > top_contender[:score]
         top_contender[:score] = eng_word_count
@@ -58,7 +58,7 @@ and I will live with the consequences of those choices. But if I want to
 live a life close to my deepest desires, I have to risk knowing who I
 really am and have always been. Knowing this, then I can choose.
 MSG
-cyphertext = Caesar.encrypt({:plain_text => message, :rot => 11})
+cyphertext = Caesar.encrypt({:plaintext => message, :rot => 11})
 
 puts "CYPHER"
 puts cyphertext

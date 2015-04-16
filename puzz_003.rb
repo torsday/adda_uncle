@@ -6,10 +6,10 @@ require_relative 'word_list'
 
 class AsciiCrypto
   def self.encrypt(args)
-    plain_text = args[:plain_text]
+    plaintext = args[:plaintext]
     radix = args[:radix].to_i || 10
     crypt_text = []
-    plain_text.split("").map do |c|
+    plaintext.split("").map do |c|
       ascii_num = c.ord
       ascii_num = ascii_num.to_i # make sure it's a num, because ruby
       ascii_num = ascii_num.to_s(radix)
@@ -30,7 +30,7 @@ class AsciiCrypto
     decrypted_msgs = []
 
     (min_radix..36).each do |radix|
-      plain_text  = []
+      plaintext  = []
       cypher_arr = cyphertext.split(" ")
       cypher_arr.map do |o|
         o = o.sub(/^00/, "") # remove leading zeros
@@ -45,9 +45,9 @@ class AsciiCrypto
         rescue
           raise "char too high? #{o}"
         end
-        plain_text << the_char
+        plaintext << the_char
       end
-      decrypted_msgs << plain_text.join("")
+      decrypted_msgs << plaintext.join("")
     end
 
     highest_num_of_eng_words(decrypted_msgs)
@@ -108,16 +108,16 @@ end
 
 MY_RADIX = 2 + rand(34)
 
-plain_text = <<-PLAIN
+plaintext = <<-PLAIN
 Set thy heart upon thy work, but never on its reward.
 Work not for a reward; but never cease to do thy work.
 PLAIN
 
 puts "\nMESSAGE"
-puts plain_text
+puts plaintext
 puts "---"
 
-cyphertext = AsciiCrypto.encrypt(:plain_text => plain_text, :radix => MY_RADIX)
+cyphertext = AsciiCrypto.encrypt(:plaintext => plaintext, :radix => MY_RADIX)
 
 puts "\nCYPHER"
 puts cyphertext

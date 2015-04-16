@@ -12,12 +12,12 @@ Caesar Cypher
 message = "message to encrypt!"
 
 # ENCRYPTION
-cypher_text = Caesar.encrypt({:plain_text => message, :rot => 11})
+cyphertext = Caesar.encrypt({:plaintext => message, :rot => 11})
 # => xpddlrp ez pyncjae!
 
 # DECRYPTION
-cypher_text = "xpddlrp ez pyncjae!"
-decrypted_msg = Caesar.decrypt({:cypher_text => cypher_text})[:text]
+cyphertext = "xpddlrp ez pyncjae!"
+decrypted_msg = Caesar.decrypt({:cyphertext => cyphertext})[:text]
 # => message to encrypt!
 ```
 
@@ -26,14 +26,14 @@ decrypted_msg = Caesar.decrypt({:cypher_text => cypher_text})[:text]
 direct ASCII translation using decimal radix
 
 ```ruby
-plain_text = "message to encrypt!"
+plaintext = "message to encrypt!"
 
 # ENCRYPTION
-cypher_text = AsciiCrypto.encrypt(:plain_text => plain_text)
+cyphertext = AsciiCrypto.encrypt(:plaintext => plaintext)
 # => 109 101 115 115 097 103 101 032 116 111 032 101 110 099 114 121 112 116 033
 
 # DECRYPTION
-decrypted_msg = AsciiCrypto.decrypt({:cypher_text => cypher_text})
+decrypted_msg = AsciiCrypto.decrypt({:cyphertext => cyphertext})
 # => message to encrypt!
 ```
 
@@ -46,23 +46,36 @@ The driving code randomly selects a radix (or base) ranging from 2 to 36 (10 dig
 ```ruby
 MY_RADIX = 2 + rand(34)
 
-plain_text = "message to encrypt!"
+plaintext = "message to encrypt!"
 
 # ENCRYPTION
-cypher_text = AsciiCrypto.encrypt(:plain_text => plain_text, :radix => MY_RADIX)
+cyphertext = AsciiCrypto.encrypt(:plaintext => plaintext, :radix => MY_RADIX)
 
 # CYPHER ALPHABET
-cypher_alphabet = AsciiCrypto.used_chars(:text => cypher_text)
+cypher_alphabet = AsciiCrypto.used_chars(:text => cyphertext)
 cypher_alphabet.delete(" ")
 
 # DECRYPTION
-decrypted_msg = AsciiCrypto.decrypt({:cypher_text => cypher_text})
+decrypted_msg = AsciiCrypto.decrypt({:cyphertext => cyphertext})
 ```
 
 
 ## Puzzle 4
 
+Let's start with creating our cyphertext. We'll be using these assumptions of the plaintext:
+
 ### Assumptions
 * most common character is the space character
 * plaintext language is english
 * ```\n``` is the only special character
+* lowercase and uppercase are normalized
+* large text, from which to extrapolate significant percentages
+* plaintext is english
+* every word has a vowel in it
+* most common single char words:
+* most common triple char words: the, and
+* h frequently goes before e, but rarely after
+
+### Weaknesses
+* can't handle significant amount of misspelled words
+* can't handle text w/o spaces

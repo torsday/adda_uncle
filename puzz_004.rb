@@ -83,10 +83,10 @@ end
 
 class Cryptogram
 
-  attr_accessor :plain_text, :cyphertext, :key, :seed
+  attr_accessor :plaintext, :cyphertext, :key, :seed
 
   def initialize(args={})
-    @plain_text  = args[:plain_text].downcase || nil
+    @plaintext  = args[:plaintext].downcase || nil
     @cyphertext = args[:cyphertext]         || nil
     @key         = args[:key]                 || nil
     @seed        = args[:seed]                || 1234
@@ -98,7 +98,7 @@ class Cryptogram
     crypto_seed ||= Random.new
     key           = Hash[alphabet.zip(alphabet.shuffle(random: crypto_seed))]
 
-    self.cyphertext = plain_text.each_char.inject("") do |encrypted, char|
+    self.cyphertext = plaintext.each_char.inject("") do |encrypted, char|
       if key[char]
         encrypted + key[char]
       else
@@ -118,11 +118,11 @@ end
 class CypherAnalysis
 
   attr_reader :cyphertext, :key
-  attr_accessor :delimiter, :plain_text
+  attr_accessor :delimiter, :plaintext
 
   def initialize(args)
     @cyphertext = args[:cyphertext]
-    @plain_text
+    @plaintext
     @delimiter   = args[:delimiter] || most_common_char
     @key         = args[:key] || Hash[alphabet.zip(alphabet.rotate(0))]
   end
@@ -134,7 +134,7 @@ class CypherAnalysis
     alphabet.uniq.sort
   end
 
-  def plain_text
+  def plaintext
     cyphertext
       .each_char
       .map {|char| key[char]}
@@ -455,9 +455,9 @@ class CypherAnalysis
     # key_scores = []
     # possible_keys.each do |possible_key|
     #   p possible_key
-    #   possible_plain_text = translate_with_key(:key => possible_key)
-    #   p possible_plain_text
-    #   list_of_words = words(:clean => true, :str => possible_plain_text)
+    #   possible_plaintext = translate_with_key(:key => possible_key)
+    #   p possible_plaintext
+    #   list_of_words = words(:clean => true, :str => possible_plaintext)
     #   p list_of_words
     #   score = percentage_of_english_words(list_of_words) # list of words
     #   key_scores << {:score => score, :key => possible_key}
@@ -621,7 +621,7 @@ puts "\n--- plain text\n#{p_text}---"
 
 # ---
 
-cryptogram = Cryptogram.new(:plain_text => p_text)
+cryptogram = Cryptogram.new(:plaintext => p_text)
 cryptogram.encrypt
 
 puts "\nCYPHER TEXT"
@@ -677,11 +677,11 @@ puts "\nmost_common_words_of_length(:length => 3)"
 p cypher.most_common_words_of_length(:length => 3)
 puts "\nword_lengths_with_delimiter"
 p cypher.word_lengths_with_delimiter
-puts "\nplain_text with current key"
-p cypher.plain_text
+puts "\nplaintext with current key"
+p cypher.plaintext
 # puts "\nDECRYPTED"
 # cypher.decrypt
-# p cypher.plain_text
+# p cypher.plaintext
 
 
 
@@ -710,7 +710,7 @@ p cypher.plain_text
 # describe Cryptogram do
 #   it "should encrypt" do
 #     known_cyphertext = "test"
-#     expect(Cryptogram.encrypt({:plain_text => p_text, :seed => 123456})).to eq(known_cyphertext)
+#     expect(Cryptogram.encrypt({:plaintext => p_text, :seed => 123456})).to eq(known_cyphertext)
 #   end
 #
 #   it "should decrypt" do
