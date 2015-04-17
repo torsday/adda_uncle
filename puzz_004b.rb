@@ -1,4 +1,16 @@
+require_relative 'word_list'
 
+
+class EnglishDictionary
+  attr_reader :words
+  def initialize
+    @words = WordList::ALL
+  end
+
+  def words_of_length(l)
+    words.select{|w| w.length == l}
+  end
+end
 
 class Encryptor
   attr_reader :plaintext
@@ -35,6 +47,18 @@ class Decryptor
     decrypt_with_key(cyphertext)
   end
 
+  def solved_p_text_chars
+    the_arr = []
+    key.each do |key,value|
+      the_arr << value
+    end
+    the_arr
+  end
+
+  def cypher_chars_left?
+    cyphertext.each_char{|c| return true if (c.ord >= 65 && c.ord <= 90)}
+  end
+
   def generate_key
     # set most common char to " "
     first_most_common_char = most_common_chars[0]
@@ -62,76 +86,167 @@ class Decryptor
     key[and_var[1]] = "n"
     key[and_var[2]] = "d"
 
+    # go through
+    # most_common_words_of_length(3)[0..5].each{|x| p x}
+
+    # ---
+
+    longest_word = cypher_words.sort_by{|x| x.length}.reverse.first
+
+    until cypher_chars_left? == false do
+
+      words_with_only_one_char_to_be_solved = []
+      (2..longest_word.length).each do |n|
+        most_common_words_of_length(n).each do |c_wrd|
+          num_of_unknown_chars = 0
+          decrypted_wrd = decrypt_with_key(c_wrd)
+          decrypted_wrd.each_char do |c|
+            # p c
+            # num_of_unknown_chars += 1 if !(c.ord >= 97 && c.ord <= 122) # if not already translated
+            num_of_unknown_chars += 1 if (c.ord >= 65 && c.ord <= 90) || c.ord == 32 # if not already translated
+          end
+          words_with_only_one_char_to_be_solved << c_wrd if num_of_unknown_chars == 1
+        end
+      end
+      break if words_with_only_one_char_to_be_solved.length == 0
+      puts "words_with_only_one_char_to_be_solved"
+      words_with_only_one_char_to_be_solved.each{|x| p decrypt_with_key(x)}
+      puts
+
+      # cypher_char_with_most_matched_words =
+      c_char_tally = {}
+      words_with_only_one_char_to_be_solved.each do |c_wrd|
+        p_wrd = decrypt_with_key(c_wrd)
+        p_wrd.each_char do |x|
+          c_char_tally[x] ||= 0
+          if (x.ord >= 65 && x.ord <= 90) || x.ord == 32 # if not already translated
+          # if x.ord < 97 || x.ord > 122 # not lowercase alpha (i.e. not yet translated)
+            # puts "shouldn't be lowercase: #{x}: #{x.ord}"
+            c_char_tally[x] += 1
+          end
+        end
+      end
+      # break if c_char_tally == nil
+      cypher_char_with_most_matched_words = c_char_tally.sort_by{|key,value| value}.reverse.first[0]
+
+      # get list of words for the best char to target from those words that have it as the only missing char
+      c_text_ven_words = words_with_only_one_char_to_be_solved.select{|x| decrypt_with_key(x) =~ Regexp.new(cypher_char_with_most_matched_words)}
+      p_text_ven_words = c_text_ven_words.map{|x| decrypt_with_key(x)}
+
+      # go through each translated word
+      # creating a regexp for the missing char
+      reg_exes = p_text_ven_words.map do |pvw|
+        # p pvw
+        new_str = ""
+        pvw.each_char do |c|
+          if (c.ord >= 65 && c.ord <= 90) || c.ord == 32 # if not already translated
+          # if c.ord >= 97 && c.ord <= 122 # if char is already translated
+            new_str += "(.)"
+          else
+            new_str += c
+          end
+        end
+        Regexp.new("^#{new_str}$")
+      end
+      # compare the word to possible word matches from the dictionary, collecting the char it woudld translate to, and tally it up
+      matches = []
+      possible_p_chars = []
+      reg_exes.each do |re|
+        possible_p_chars_per_regex = []
+        WordList::ALL.each do |dict_wrd|
+          for_word = []
+          if dict_wrd =~ re
+            possible_p_chars_per_regex << dict_wrd.match(re)[1]
+          end
+        end
+        possible_p_chars << possible_p_chars_per_regex unless possible_p_chars_per_regex == []
+      end
+      # possible_p_chars.each {|x| p x}
+      possible_p_chars_tally = {}
+      possible_p_chars = possible_p_chars.flatten.select{|x| !solved_p_text_chars.include?(x)} # remove chars already in key
+      possible_p_chars.each{|x| possible_p_chars_tally[x] ||= 0; possible_p_chars_tally[x] += 1}
+      top_char_contender = possible_p_chars_tally.sort_by{|key,value| value}.reverse[0]
+
+      # set the key to the key found most of the time
+      break if top_char_contender == nil
+      puts "#{cypher_char_with_most_matched_words} => #{top_char_contender[0]}"
+      key[cypher_char_with_most_matched_words] = top_char_contender[0]
+
+    end
+
+    # ---
+
+
     # Look for special words...
 
-    # get "w" from "t*eeted"
-    word_pool = most_common_words_of_length(7)
-    word_pool += most_common_words_of_length(8) # account for symbols
-    tweeted_var = word_pool.select do |w|
-      p_word = decrypt_with_key(w)
-      # p_word[0] == 't' && p_word[2..6] == 'eeted'
-      p_word =~ /t.eeted/
-    end
-    if tweeted_var = tweeted_var.first
-      key[tweeted_var[1]] = 'w'
-    end
-
-    # get "s" from "*enate"
-    word_pool = most_common_words_of_length(6)
-    word_pool += most_common_words_of_length(7) # account for symbols
-    senate_var = word_pool.select do |w|
-      p_word = decrypt_with_key(w)
-      # p_word[1..5] == 'enate'
-      p_word =~ /.enate/
-    end
-    if senate_var = senate_var.first
-      key[senate_var[0]] = 's'
-    end
-
-    # get "i" from "wh*te"
-    word_pool = most_common_words_of_length(5)
-    word_pool += most_common_words_of_length(6) # account for symbols
-    white_var = word_pool.select do |w|
-      p_word = decrypt_with_key(w)
-      # p_word[0..1] == 'wh' && p_word[3..4] == 'te'
-      p_word =~ /wh.te/
-    end
-    if white_var = white_var.first
-      key[white_var[2]] = 'i'
-    end
-
-    # get 'b' from '*etween'
-    word_pool = most_common_words_of_length(7)
-    word_pool += most_common_words_of_length(8) # account for symbols
-    wrd_var = word_pool.select do |w|
-      p_word = decrypt_with_key(w)
-      p_word =~ /.etween/
-    end
-    if wrd_var = wrd_var.first
-      key[wrd_var[0]] = 'b'
-    end
-
-    # r w/ whethe.
-    word_pool = most_common_words_of_length(7)
-    word_pool += most_common_words_of_length(8) # account for symbols
-    wrd_var = word_pool.select do |w|
-      p_word = decrypt_with_key(w)
-      p_word =~ /whethe./
-    end
-    if wrd_var = wrd_var.first
-      key[wrd_var[6]] = 'r'
-    end
-
-    # l w/ is.and
-    word_pool = most_common_words_of_length(6)
-    word_pool += most_common_words_of_length(7) # account for symbols
-    wrd_var = word_pool.select do |w|
-      p_word = decrypt_with_key(w)
-      p_word =~ /is.and/
-    end
-    if wrd_var = wrd_var.first
-      key[wrd_var[2]] = 'l'
-    end
+    # # get "w" from "t*eeted"
+    # word_pool = most_common_words_of_length(7)
+    # word_pool += most_common_words_of_length(8) # account for symbols
+    # tweeted_var = word_pool.select do |w|
+    #   p_word = decrypt_with_key(w)
+    #   # p_word[0] == 't' && p_word[2..6] == 'eeted'
+    #   p_word =~ /t.eeted/
+    # end
+    # if tweeted_var = tweeted_var.first
+    #   key[tweeted_var[1]] = 'w'
+    # end
+    #
+    # # get "s" from "*enate"
+    # word_pool = most_common_words_of_length(6)
+    # word_pool += most_common_words_of_length(7) # account for symbols
+    # senate_var = word_pool.select do |w|
+    #   p_word = decrypt_with_key(w)
+    #   # p_word[1..5] == 'enate'
+    #   p_word =~ /.enate/
+    # end
+    # if senate_var = senate_var.first
+    #   key[senate_var[0]] = 's'
+    # end
+    #
+    # # get "i" from "wh*te"
+    # word_pool = most_common_words_of_length(5)
+    # word_pool += most_common_words_of_length(6) # account for symbols
+    # white_var = word_pool.select do |w|
+    #   p_word = decrypt_with_key(w)
+    #   # p_word[0..1] == 'wh' && p_word[3..4] == 'te'
+    #   p_word =~ /wh.te/
+    # end
+    # if white_var = white_var.first
+    #   key[white_var[2]] = 'i'
+    # end
+    #
+    # # get 'b' from '*etween'
+    # word_pool = most_common_words_of_length(7)
+    # word_pool += most_common_words_of_length(8) # account for symbols
+    # wrd_var = word_pool.select do |w|
+    #   p_word = decrypt_with_key(w)
+    #   p_word =~ /.etween/
+    # end
+    # if wrd_var = wrd_var.first
+    #   key[wrd_var[0]] = 'b'
+    # end
+    #
+    # # r w/ whethe.
+    # word_pool = most_common_words_of_length(7)
+    # word_pool += most_common_words_of_length(8) # account for symbols
+    # wrd_var = word_pool.select do |w|
+    #   p_word = decrypt_with_key(w)
+    #   p_word =~ /whethe./
+    # end
+    # if wrd_var = wrd_var.first
+    #   key[wrd_var[6]] = 'r'
+    # end
+    #
+    # # l w/ is.and
+    # word_pool = most_common_words_of_length(6)
+    # word_pool += most_common_words_of_length(7) # account for symbols
+    # wrd_var = word_pool.select do |w|
+    #   p_word = decrypt_with_key(w)
+    #   p_word =~ /is.and/
+    # end
+    # if wrd_var = wrd_var.first
+    #   key[wrd_var[2]] = 'l'
+    # end
 
 
   end
@@ -162,12 +277,19 @@ class Decryptor
     sorted_arr
   end
 
+  def cypher_words
+    delimiter = most_common_chars[0]
+    re_str = "[#{delimiter},\n]"
+    # p re_str
+    delimiter_regex = Regexp.new(re_str)
+    # p delimiter_regex
+    cyphertext.split(delimiter_regex)
+  end
+
   def most_common_words_of_length(l_int)
     length = l_int
     results = {}
-    delimiter = most_common_chars[0]
-
-    word_pool = cyphertext.split(delimiter)
+    word_pool = cypher_words
 
     words_of_x_length = word_pool.select {|word| word.length == length}
     words_of_x_length.each {|w| results[w] = 0}
@@ -266,6 +388,6 @@ decyphered_text = decryptee.plaintext
 puts "\nKEY"
 p key
 puts "\nPLAINTEXT"
-p decyphered_text
-puts "\nTRIPLE CHAR WORDS DECRYPTED"
-p decryptee.temp
+puts decyphered_text
+# puts "\nTRIPLE CHAR WORDS DECRYPTED"
+# p decryptee.temp
