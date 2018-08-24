@@ -1,12 +1,81 @@
-# Cryptogram Cypher
-#
-# Unlike a caesar cypher, the key isn't a rotated alphabet, rather a random monoalphabet key.
-# TODO: create decrypter, without knowing the key
-# basic implementation: only letters, no numbers, or symbols
-# decrypts by going through the 26 possible results, returning the translation
-# containing the most engligh (and personal) words
+# Vignére Cipher
 
 require_relative 'word_list'
+
+class CaesarShift
+  def self.encrypt(args)
+    plain_text = args[:plain_text].upcase
+    alphabet = ("A".."Z").to_a
+    rot  = args[:rot]
+    key = Hash[alphabet.zip(alphabet.rotate(rot))]
+    key[" "] = " "
+    key["."] = "."
+    plain_text.each_char.inject("") do |encrypted, char|
+      if key[char]
+        encrypted + key[char]
+      else
+        encrypted + char
+      end
+    end
+  end
+
+  def self.decrypt(args)
+    cypher_text = args[:cypher_text]
+    possibles = []
+    top_contender = {:score => 0, :text => ""}
+    (0..25).each do |n|
+      translation = self.encrypt(:rot => n, :plain_text => cypher_text)
+      eng_word_count = num_of_english_words(translation)
+      if eng_word_count > top_contender[:score]
+        top_contender[:score] = eng_word_count
+        top_contender[:text] = translation
+      end
+    end
+    top_contender
+  end
+
+  def self.num_of_english_words(str)
+    arr = str.upcase.split(" ")
+    count = 0
+    arr.each do |w|
+      count += 1 if WordList::ALL.include?(w)
+    end
+    count
+  end
+
+  def self.pruneNumAndSymFromString(_string)
+    finalStr = _string
+    # finalStr = swapPeriodsWithSpaces(finalStr)
+    # finalStr = swapNewlinesWithSpaces(finalStr)
+    # finalStr = removeSymbols(finalStr)
+    # finalStr = removeNumbers(finalStr)
+    # finalStr = cleanSpaces(finalStr)
+
+    finalStr
+  end
+
+  def self.cleanSpaces(_string)
+    return_str = _string
+    return_str.gsub!(/\ \ /, " ")
+    return_str.strip! || return_str
+  end
+
+  def self.swapNewlinesWithSpaces(_string)
+    _string.gsub!(/\n/, ' ')
+  end
+
+  def self.swapPeriodsWithSpaces(_string)
+    _string.gsub!(/\./, ' ')
+  end
+
+  def self.removeNumbers(_string)
+    _string.tr("0-9", "")
+  end
+
+  def self.removeSymbols(_string)
+    _string.gsub!(/[^0-9A-Za-z ]/, '')
+  end
+end
 
 class FrequencyAnalysis
 
@@ -113,7 +182,7 @@ class FrequencyAnalysis
         freq_rats_ints[char] = 1
       end
     end
-    
+
     freq_rats_ints.each do |char, num_found|
       rat = (num_found.to_f / total_chars) * 100
       freq_rats_perc[char] = rat.round(3)
@@ -174,6 +243,8 @@ end
     finalStr = removeSymbols(finalStr)
     finalStr = removeNumbers(finalStr)
     finalStr = cleanSpaces(finalStr)
+    finalStr = finalStr.gsub!(/\s+/, "") # remove whitespace
+
 
     finalStr
   end
@@ -204,6 +275,73 @@ end
 def printHash(_hash)
   _hash.each do |key, val|
     puts "#{key}: #{val}"
+  end
+end
+
+class Vignere
+  INDEX_TO_LETTER = {0=>"A", 1=>"B", 2=>"C", 3=>"D", 4=>"E", 5=>"F", 6=>"G", 7=>"H", 8=>"I", 9=>"J",
+                     10=>"K", 11=>"L", 12=>"M", 13=>"N", 14=>"O", 15=>"P", 16=>"Q", 17=>"R", 18=>"S",
+                     19=>"T", 20=>"U", 21=>"V", 22=>"W", 23=>"X", 24=>"Y", 25=>"Z"}
+
+  LETTER_TO_INDEX = {"A"=>0,"B"=> 1,"C"=> 2,"D"=> 3,"E"=> 4,"F"=> 5,"G"=> 6,"H"=> 7,"I"=> 8,"J"=> 9,
+                     "K"=>10, "L"=>11, "M"=>12, "N"=>13, "O"=>14, "P"=>15, "Q"=>16, "R"=>17, "S"=>18,
+                     "T"=>19, "U"=>20, "V"=>21, "W"=>22, "X"=>23, "Y"=>24, "Z"=>25}
+
+  def self.encode(_hash)
+    plain_txt = _hash[:plain_txt].upcase
+    keyword   = _hash[:keyword].upcase
+    keysChar  = keyword.split("")
+    keysInt   = keysChar.map{|char| LETTER_TO_INDEX[char]}
+    cipher_txt = ""
+
+    # p plain_txt
+
+    plain_txt.each_char.with_index do |char, i|
+        # unless LETTER_TO_INDEX.keys.include?(char)
+        #   cipher_txt << char
+        #   next
+        # end
+        key   = keysInt[i % keysInt.length]
+        index = LETTER_TO_INDEX[char]
+
+        if (index + key) < 26
+          cipher_txt << INDEX_TO_LETTER[index + key]
+        else
+          cipher_txt << INDEX_TO_LETTER[index + key - 26]
+        end
+    end
+
+    cipher_txt
+  end
+
+  def self.splitStringByMod(_string, _mod)
+    return_arr = Array.new(_mod, Array.new)
+    return_arr = ["","",""] # hardcoded for now
+
+    # _string.split("").map.with_index do |x,i|
+    #   i % _mod
+    # end
+
+    # Johns solution to replace the other with
+    # ```"ABCABCABC".split("").group_by.with_index { |_, i| i % 3}.values```
+
+    _string.each_char.with_index do |char, i|
+      # puts char
+      # puts i
+      # p return_arr[i % _mod]
+      return_arr[i % _mod] << char
+    end
+
+    return_arr
+  end
+
+  def self.recurring_substrings(str)
+    arr = str.chars
+    (1..str.size/2).each_with_object({}) do |n,h|
+      arr.each_cons(n).map { |b| b.join }.uniq.each do |s|
+        str.scan(Regexp.new(s)) { (h[s] ||= []) << Regexp.last_match.begin(0) }
+      end
+    end.reject { |_,v| v.size == 1 }
   end
 end
 
@@ -287,40 +425,65 @@ MSG
 
 cleaned_plaintext = Cryptogram.pruneNumAndSymFromString(birches.upcase)
 
-encrypted_result = Cryptogram.encrypt({:plain_text => cleaned_plaintext, :rot => 11})
+vig_text = Vignere.encode({
+    :plain_txt => cleaned_plaintext,
+    :keyword => 'dog'
+                          })
+
+vig_split_strings = Vignere.splitStringByMod(vig_text, 3)
+
+# run freq analysis on each string
+# p vig_split_strings.map{|str| FrequencyAnalysis.getCharacterRatios(str)}
+
+# encrypted_result = Cryptogram.encrypt({:plain_text => cleaned_plaintext, :rot => 11})
 
 puts "\nPLAIN TEXT"
 p cleaned_plaintext
 puts "---"
 
 puts "\nCYPHER TEXT"
-puts encrypted_result[:text]
+puts vig_text
 puts "---"
 
-puts "\nFrequency Analysis: All Characters"
-printHash(FrequencyAnalysis.getCharacterRatios(encrypted_result[:text]))
+puts "\nCYPHER TEXT - Split"
+vig_split_strings.each{|string| puts "#{string}\n\n"}
 puts "---"
 
-puts "\nFrequency Analysis: First Char of words"
-printHash(FrequencyAnalysis.getCharacterRatios(FrequencyAnalysis.getFirstCharOfAllWords(encrypted_result[:text])))
-puts "---"
+# p Vignere.recurring_substrings(vig_text)
 
-puts "\nFrequency Analysis: Word counts"
-printHash(FrequencyAnalysis.getWordRatios(encrypted_result[:text]))
-puts "---"
-
-puts "\nCIPHER Key"
-printHash(encrypted_result[:key])
-puts "---"
-
-puts "\nDeCIPHER Key"
-decipher_key = encrypted_result[:key].invert
-printHash(decipher_key.sort_by {|_key, value| _key}.to_h)
+repeated_substrings = {
+    "LBMWVKP"=>[99, 1020], # 921 (only 3)
+    "BIKWTJC"=>[373, 1165], # 792 (2, 3)
+    "VCSHPUB"=>[837, 882], # 45 (3, 5)
+    "GCLBMLBM"=>[94, 109], # 15 (3, 5)
+    "DQXRGYLH"=>[1587, 1635] # 48 (2, 3)
+}
 
 
-puts "---"
-
-decrypted_msg = Cryptogram.decrypt({:cypher_text => encrypted_result[:text], :key => encrypted_result[:key]})
-
-puts "\nDECRYPTED"
-puts decrypted_msg
+# puts "\nFrequency Analysis: All Characters"
+# printHash(FrequencyAnalysis.getCharacterRatios(encrypted_result[:text]))
+# puts "---"
+#
+# puts "\nFrequency Analysis: First Char of words"
+# printHash(FrequencyAnalysis.getCharacterRatios(FrequencyAnalysis.getFirstCharOfAllWords(encrypted_result[:text])))
+# puts "---"
+#
+# puts "\nFrequency Analysis: Word counts"
+# printHash(FrequencyAnalysis.getWordRatios(encrypted_result[:text]))
+# puts "---"
+#
+# puts "\nCIPHER Key"
+# printHash(encrypted_result[:key])
+# puts "---"
+#
+# puts "\nDeCIPHER Key"
+# decipher_key = encrypted_result[:key].invert
+# printHash(decipher_key.sort_by {|_key, value| _key}.to_h)
+#
+#
+# puts "---"
+#
+# decrypted_msg = Cryptogram.decrypt({:cypher_text => encrypted_result[:text], :key => encrypted_result[:key]})
+#
+# puts "\nDECRYPTED"
+# puts decrypted_msg
